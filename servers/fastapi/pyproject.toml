@@ -53,6 +53,9 @@ include = [
     "templates*",
 ]
 
+[tool.setuptools.package-data]
+templates = ["assets/fonts.json"]
+
 [tool.pyright]
 typeCheckingMode = "off"
 
