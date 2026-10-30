@@ -1,4 +1,5 @@
 import React from 'react'
+import ImageProviderTest from '@/components/ImageProviderTest'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
 import { Check, ChevronsUpDown } from 'lucide-react';
@@ -386,6 +387,11 @@ const ImageSelectionConfig = ({ isImageGenerationDisabled, openImageProviderSele
                 </div>
             </div>
 
+            {!isImageGenerationDisabled && llmConfig.IMAGE_PROVIDER && (
+                <div className="px-10 pb-6 bg-white rounded-b-[12px]">
+                    <ImageProviderTest config={llmConfig} />
+                </div>
+            )}
         </div>
     )
 }
