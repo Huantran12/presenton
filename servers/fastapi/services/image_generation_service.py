@@ -130,12 +130,32 @@ def _get_image_generation_lock() -> asyncio.Lock:
 
 
 class ImageGenerationService:
-    def __init__(self, output_directory: str):
+    def __init__(self, output_directory: str, config: dict[str, str] | None = None):
         self.output_directory = output_directory
-        self.is_image_generation_disabled = is_image_generation_disabled()
+        self.config = config
+        self.is_image_generation_disabled = (
+            False if config is not None else is_image_generation_disabled()
+        )
         self.image_gen_func = self.get_image_gen_func()
 
+    def _setting(self, key: str, getter):
+        # Empty form values must not fall back to a different saved configuration.
+        return self.config.get(key) if self.config is not None else getter()
+
     def get_image_gen_func(self):
+        if self.config is not None:
+            return {
+                "pexels": self.get_image_from_pexels,
+                "pixabay": self.get_image_from_pixabay,
+                "gemini_flash": self.generate_image_gemini_flash,
+                "nanobanana_pro": self.generate_image_nanobanana_pro,
+                "gpt-image-2": self.generate_image_openai_gpt_image_2,
+                "gpt-image-1.5": self.generate_image_openai_gpt_image_1_5,
+                "comfyui": self.generate_image_comfyui,
+                "open_webui": self.generate_image_open_webui,
+                "openai_compatible": self.generate_image_openai_compatible,
+            }.get(self.config.get("IMAGE_PROVIDER"))
+
         if self.is_image_generation_disabled:
             return None
 
@@ -160,6 +180,8 @@ class ImageGenerationService:
         return None
 
     def is_stock_provider_selected(self):
+        if self.config is not None:
+            return self.config.get("IMAGE_PROVIDER") in {"pexels", "pixabay"}
         return is_pixels_selected() or is_pixabay_selected()
 
     async def generate_image(self, prompt: ImagePrompt) -> str | ImageAsset:
@@ -242,7 +264,10 @@ class ImageGenerationService:
         quality: str,
         target_size: tuple[float, float] | None = None,
     ) -> str:
-        client = AsyncOpenAI()
+        client = (
+            AsyncOpenAI(api_key=self.config["OPENAI_API_KEY"])
+            if self.config is not None else AsyncOpenAI()
+        )
         selected_size = _openai_image_size(model, target_size)
         print(f"OpenAI image API size: {selected_size}", flush=True)
         request = {
@@ -279,7 +304,7 @@ class ImageGenerationService:
             prompt,
             output_directory,
             "gpt-image-2",
-            get_gpt_image_2_quality_env() or "medium",
+            self._setting("GPT_IMAGE_2_QUALITY", get_gpt_image_2_quality_env) or "medium",
             target_size,
         )
 
@@ -293,7 +318,7 @@ class ImageGenerationService:
             prompt,
             output_directory,
             "gpt-image-1.5",
-            get_gpt_image_1_5_quality_env() or "medium",
+            self._setting("GPT_IMAGE_1_5_QUALITY", get_gpt_image_1_5_quality_env) or "medium",
             target_size,
         )
 
@@ -303,12 +328,12 @@ class ImageGenerationService:
         output_directory: str,
         target_size: tuple[float, float] | None = None,
     ) -> str:
-        base_url = get_open_webui_image_url_env()
+        base_url = self._setting("OPEN_WEBUI_IMAGE_URL", get_open_webui_image_url_env)
         if not base_url:
             raise ValueError("OPEN_WEBUI_IMAGE_URL environment variable is not set")
 
         base_url = resolve_open_webui_api_base(base_url)
-        api_key = get_open_webui_image_api_key_env() or ""
+        api_key = self._setting("OPEN_WEBUI_IMAGE_API_KEY", get_open_webui_image_api_key_env) or ""
 
         parsed = urlparse(base_url)
         origin = f"{parsed.scheme}://{parsed.netloc}"
@@ -396,7 +421,10 @@ class ImageGenerationService:
         target_size: tuple[float, float] | None = None,
     ) -> str:
         """Base method for Google image generation models."""
-        client = genai.Client()
+        client = (
+            genai.Client(api_key=self.config["GOOGLE_API_KEY"])
+            if self.config is not None else genai.Client()
+        )
         aspect_ratio = _gemini_image_aspect_ratio(target_size)
         print(f"Gemini image API aspect ratio: {aspect_ratio or 'auto'}", flush=True)
         config_kwargs = {"response_modalities": ["IMAGE"]}
@@ -479,7 +507,7 @@ class ImageGenerationService:
         self, prompt: str, api_key: str | None = None, limit: int = 1
     ) -> str | list[str]:
         per_page = max(1, min(limit, 80))
-        resolved_api_key = (api_key or get_pexels_api_key_env() or "").strip()
+        resolved_api_key = (api_key or self._setting("PEXELS_API_KEY", get_pexels_api_key_env) or "").strip()
 
         async with aiohttp.ClientSession(trust_env=True) as session:
             response = await session.get(
@@ -514,7 +542,7 @@ class ImageGenerationService:
         self, prompt: str, api_key: str | None = None, limit: int = 1
     ) -> str | list[str]:
         per_page = max(3, min(limit, 200))
-        resolved_api_key = (api_key or get_pixabay_api_key_env() or "").strip()
+        resolved_api_key = (api_key or self._setting("PIXABAY_API_KEY", get_pixabay_api_key_env) or "").strip()
 
         async with aiohttp.ClientSession(trust_env=True) as session:
             response = await session.get(
@@ -585,8 +613,8 @@ class ImageGenerationService:
         Returns:
             Path to the generated image file
         """
-        comfyui_url = get_comfyui_url_env()
-        workflow_json = get_comfyui_workflow_env()
+        comfyui_url = self._setting("COMFYUI_URL", get_comfyui_url_env)
+        workflow_json = self._setting("COMFYUI_WORKFLOW", get_comfyui_workflow_env)
 
         if not comfyui_url:
             raise ValueError("COMFYUI_URL environment variable is not set")
@@ -1041,9 +1069,9 @@ class ImageGenerationService:
         output_directory: str,
         target_size: tuple[float, float] | None = None,
     ) -> str:
-        base_url = get_openai_compat_image_base_url_env()
-        api_key = get_openai_compat_image_api_key_env()
-        model = get_openai_compat_image_model_env()
+        base_url = self._setting("OPENAI_COMPAT_IMAGE_BASE_URL", get_openai_compat_image_base_url_env)
+        api_key = self._setting("OPENAI_COMPAT_IMAGE_API_KEY", get_openai_compat_image_api_key_env)
+        model = self._setting("OPENAI_COMPAT_IMAGE_MODEL", get_openai_compat_image_model_env)
 
         if not base_url or not api_key or not model:
             raise ValueError(

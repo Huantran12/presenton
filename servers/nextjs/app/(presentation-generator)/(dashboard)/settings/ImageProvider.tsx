@@ -1,3 +1,4 @@
+import ImageProviderTest from '@/components/ImageProviderTest'
 import ToolTip from '@/components/ToolTip'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -433,6 +434,8 @@ const ImageProvider = ({ llmConfig, setLlmConfig }: { llmConfig: LLMConfig, setL
                     </>
                 )}
 
+
+            <ImageProviderTest config={llmConfig} />
 
             {/* Web Grounding Toggle - show at the end, below models dropdown */}
             {/* <div className="bg-white flex justify-between items-center p-10 rounded-[12px]">

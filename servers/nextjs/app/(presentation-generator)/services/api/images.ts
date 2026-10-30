@@ -12,6 +12,22 @@ interface StockSearchOptions {
 const REDACTED_SECRET_PLACEHOLDER = "__configured__";
 
 export class ImagesApi {
+  static async testProvider(
+    config: Record<string, string>,
+    signal?: AbortSignal,
+  ): Promise<{ image_url: string }> {
+    const response = await fetch(getApiUrl("/api/v1/ppt/images/test"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+      signal,
+    });
+    const result = await ApiResponseHandler.handleResponse(response, "Image provider test failed");
+    if (typeof result?.image_url !== "string" || !result.image_url) {
+      throw new Error("The provider did not return a sample image. Check its configuration and try again.");
+    }
+    return result;
+  }
  
  static async uploadImage(file: File): Promise<ImageAssetResponse> {
     try {
