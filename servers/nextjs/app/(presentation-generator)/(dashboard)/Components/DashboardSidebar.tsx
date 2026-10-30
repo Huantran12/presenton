@@ -4,6 +4,7 @@ import React from "react";
 import { LayoutDashboard, Star, Brain, Settings, HelpCircle, UsersRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import TemplateNavIcon from "./TemplateNavIcon";
 
 
 
@@ -61,21 +62,33 @@ const DashboardSidebar = ({
                             <LayoutDashboard className={["h-4 w-4", pathname === "/dashboard" ? "text-[#5146E5]" : "text-slate-600"].join(" ")} />
                             <span className="text-[11px] text-slate-800">Dashboard</span>
                         </Link>
-                        {showTemplates ? <Link
-                            prefetch={false}
-                            href={`/templates`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors",
-                                pathname === "/templates" ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label="Templates"
-                            title="Templates"
-                        >
-                            <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={`${pathname === "/templates" ? "#5146E5" : "#475569"}`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M4 14h6" /><path d="M4 2h10" /><rect x="4" y="18" width="16" height="4" rx="1" /><rect x="4" y="6" width="16" height="4" rx="1" /></svg>
-                                <span className="text-[11px] text-slate-800">Templates</span>
-                            </div>
-                        </Link> : null}
+                        {showTemplates ? 
+                        // <Link
+                        //     prefetch={false}
+                        //     href={`/templates`}
+                        //     className={[
+                        //         "flex flex-col tex-center items-center gap-2  transition-colors",
+                        //         pathname === "/templates" ? "" : "ring-transparent",
+                        //     ].join(" ")}
+                        //     aria-label="Templates"
+                        //     title="Templates"
+                        // >
+                        //     <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
+                        //         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={`${pathname === "/templates" ? "#5146E5" : "#475569"}`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M4 14h6" /><path d="M4 2h10" /><rect x="4" y="18" width="16" height="4" rx="1" /><rect x="4" y="6" width="16" height="4" rx="1" /></svg>
+                        //         <span className="text-[11px] text-slate-800">Templates</span>
+                        //     </div>
+                        // </Link> 
+                        <Link
+              prefetch={false}
+              href="/templates"
+              className="flex flex-col text-center items-center gap-2 transition-colors"
+              aria-label="Standard templates"
+              title="Standard"
+            >
+              <TemplateNavIcon active={pathname === "/templates"} />
+              <span className="text-[11px] text-slate-800">Templates</span>
+            </Link>
+                        : null}
                         {showCommunity ? <Link
                             prefetch={false}
                             href="/community"
